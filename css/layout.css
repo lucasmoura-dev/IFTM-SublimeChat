@@ -1,0 +1,10 @@
+@font-face {
+    font-family: Consolas;
+    src: url(fonts/consolas.woff);
+}
+
+body{
+	background-color: #272822;
+	font: 15px Consolas;
+	color: #e22669;
+}
