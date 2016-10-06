@@ -2,8 +2,7 @@ Trabalho da matéria Programação Paralela e Distribuída
 
 Chat usando a biblioteca Socket.io
 
-# 
-EQUIPE #
+# EQUIPE #
 
 **Desenvolvedores:**
 
@@ -15,8 +14,8 @@ EQUIPE #
 * Kevin Kesser
 * Lucas Moura
 * Matheus Marques
-**
-Design e Marketing:**
+
+**Design e Marketing:**
 
 * Elton Lima
 * Gabriel Nunes
