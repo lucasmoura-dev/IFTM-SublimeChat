@@ -1,0 +1,12 @@
+#272822 - Cor do fundo do texto
+#8f908a - Cor dos numeros da linha
+#868686 - Cor das seta
+#e6e6e6 - Cor do fundo lateral esquerdo
+#828282 - Cor da palavra FOLDER
+
+--------------------PALAVRAS-------------------
+#e22669 - Cor do rosa
+#5cd9b1 - Cor do azul claro
+#7fe22a - Cor do verde
+#e6db74 - Cor do amarelo
+#75715e - Cor do cinza
