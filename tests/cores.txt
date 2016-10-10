@@ -3,6 +3,8 @@
 #868686 - Cor das seta
 #e6e6e6 - Cor do fundo lateral esquerdo
 #828282 - Cor da palavra FOLDER
+#363631 - Cor da barra do LINUX - barra esquerda(365x27) - barra direita(193x27)
+#d9d9d9 - Cor da barra superior do sublime
 
 --------------------PALAVRAS-------------------
 #e22669 - Cor do rosa
