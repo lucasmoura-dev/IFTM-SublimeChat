@@ -4,8 +4,40 @@
 	<meta charset="utf-8">
 	<title>Teste</title>
 	<link rel="stylesheet"href="./css/layout.css">
+	<style type="text/css">
+	#msgs 
+	{ 
+		list-style-type: none; margin: 0; padding: 0; 
+	}
+    #msgs li 
+    { 
+    	padding: 5px 10px; 
+    }
+    #msgEntrada 
+    { 
+    	resize: none;
+    	background-color: #272822;
+		font: 15px Consolas;
+		color: #e22669;
+		 border: none;
+	    overflow: auto;
+	    outline: none;
+
+	    -webkit-box-shadow: none;
+	    -moz-box-shadow: none;
+	    box-shadow: none;
+    }
+	</style>
+	
 </head>
 <body>
-	Olá, tudo bem? geografia teste de fonte
+	<div>
+	Testando
+	<ul id="msgs">
+		<li><span class="tagNome">&ltLucas&gt</span>Oi<span class="tagNome">&lt/Lucas&gt</span></li>
+		<li><span class="tagNomee">&ltCarlos&gt</span>Oi<span class="tagNomee">&lt/Carlos&gt</span></li>
+	</ul>
+	<textarea id="msgEntrada"></textarea>
+	</div>
 </body>
 </html>
