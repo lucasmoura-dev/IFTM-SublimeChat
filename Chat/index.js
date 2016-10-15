@@ -7,12 +7,10 @@ app.get('/', function(req, res){
 });
 
 
-var usuariosOnline=[];
-var socketUsuariosOnline = [];
+var usuariosOnline = {};
 
 
-
-/* Nesse método, o servidor cria uma instância para cada usuário(socket) conectado, uma thread que ficará 
+/* Nessa função, o servidor cria uma instância para cada usuário(socket) conectado, uma thread que ficará 
    funcionando enquanto o usuário estiver conectado. Em cada instância, a variável meuNome terá valores 
    diferente para cada usuário conectado.
 */
@@ -20,8 +18,7 @@ io.on('connection', function(socket){
 	var meuNome;
 	enviarUsuariosOnline();
 
-	// Recebendo mensagens do cliente
-	// Cada socket 
+	// Toda vez que o socket receber uma mensagem, a função é chamada
 	socket.on('chat message', function(msg){
 		// Mensagem do cliente é recebida e convertida para array
 		dataObj = JSON.parse(msg);
@@ -38,20 +35,19 @@ io.on('connection', function(socket){
 			{
 				var msgr={tipo:"erro1", msg:"Usuario jã existe"};
 			}
+
+		    enviarMensagemGlobal(msgr);
 		}
-		else if(dataObj['tipo'] == 'all') //Mensagem no chat que é repassada para todos
+		else if(dataObj['tipo'] == 'all') // Mensagem no chat que é repassada para todos
 		{
 			var msgr = {tipo:"all", msg:dataObj['msg'], from: dataObj['user']};
-		
+			enviarMensagemGlobal(msgr);
 		}
 		else if(dataObj['tipo'] == 'dm') //Mensagem privada que é repassada ao destinatário
 		{
 			var msgr = {tipo:"dm", msg:dataObj['msg'], from: dataObj['user'], dest: dataObj['dest']};
+			enviarMensagemPrivada(dataObj['dest'], msgr);
 		}
-
-		// Mensagem é convertida para json e enviada para cliente
-		var json = JSON.stringify(msgr);
-		io.emit('chat message', json);
 	});
 
 	// Caso cliente desconectar, informa para todos os usuários que ele foi desconectado
@@ -64,6 +60,24 @@ http.listen(3000, function(){
   console.log("Servidor criado na porta 3000");
 });
 
+function enviarMensagemPrivada(nomeDestinario, msg)
+{
+	if(nomeDestinario in usuariosOnline)
+	{
+		var json = JSON.stringify(msg);
+		usuariosOnline[nomeDestinario].emit('chat message', json);
+	}
+	else
+	{
+		console.log("Não foi possível enviar uma mensagem privada para o usuário " + nomeDestinario);
+	}
+}
+
+function enviarMensagemGlobal(msg)
+{
+	var json = JSON.stringify(msg);
+	io.emit('chat message', json);
+}
 
 // Verifico na minha lista de usuários conectados se o nome já está sendo usado
 function contemUsuario(nomeUsuario)
@@ -84,8 +98,7 @@ function contemUsuario(nomeUsuario)
 function adicionarUsuario(nomeUsuario, socket)
 {
 	console.log("Novo usuário: " + nomeUsuario + "["+socket.id+"]");
-	usuariosOnline.push(nomeUsuario);
-	socketUsuariosOnline.push(socket.id);
+	usuariosOnline[nomeUsuario] = socket;
 }
 
 // Envia uma mensagem contendo todos os usuários online
@@ -97,34 +110,35 @@ function enviarUsuariosOnline()
 		nomesUsuarios.push(nome);
 	}
 	var msgr = {tipo:"userStart", nomes:nomesUsuarios};
-	var json = JSON.stringify(msgr);
-	io.emit('chat message', json);
+	enviarMensagemGlobal(msgr);
 }
 
 // Verifica se contém no mínimo um usuário conectado na minha lista
 function contemUsuariosOnline()
 {
-	return usuariosOnline.length > 0;
+	return Object.keys(usuariosOnline).length > 0;
+}
+
+function getQtdUsuariosOnline()
+{
+	return Object.keys(usuariosOnline).length;
 }
 
 // Remove o usuário das listas(nomes e sockets) e informa para os outros usuários que o usuario foi desconectado
 function desconectarUsuario(nomeUsuario)
 {
-	var indiceUsuario = usuariosOnline.indexOf(nomeUsuario);
-	if(indiceUsuario != -1) // Usuário está na lista
+	if(nomeUsuario in usuariosOnline)
 	{
-		console.log("Usuário desconectado: " + nomeUsuario + "["+socketUsuariosOnline[indiceUsuario]+"]");
-		usuariosOnline.splice(indiceUsuario, 1); // Remove da lista de usuários
-		socketUsuariosOnline.splice(indiceUsuario, 1); // Remove da lista de sockets
+		console.log("Usuário desconectado: " + nomeUsuario + "["+usuariosOnline[nomeUsuario]+"]");
+		delete usuariosOnline[nomeUsuario];
 		if(contemUsuariosOnline())
 		{
 			var msgr={tipo:"offline", user:nomeUsuario};
-			var json=JSON.stringify(msgr);
-			io.emit('chat message', json);
+			enviarMensagemGlobal(msgr);
 		}
 	}
 	else
 	{
-		console.log("O usuário " + nomeUsuario + " não foi encontrado na lista usuariosOnline no método desconectarUsuario");
+		console.log("O usuário " + nomeUsuario + " não foi encontrado na lista usuariosOnline na função desconectarUsuario.");
 	}
 }
