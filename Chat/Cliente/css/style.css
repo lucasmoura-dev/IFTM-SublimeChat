@@ -144,7 +144,7 @@ header {
   margin-left: 150px;
   overflow: auto;
 }
-#msgEntrada 
+.msgEntrada 
 { 
   font: 15px Consolas;
   resize: none;

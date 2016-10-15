@@ -11,7 +11,7 @@ app.get('/', function(req, res){
 
 
 var usuariosOnline = {};
-
+var tamanhoMaxNome = 12;
 
 /* Nessa função, o servidor cria uma instância para cada usuário(socket) conectado, uma thread que ficará 
    funcionando enquanto o usuário estiver conectado. Em cada instância, a variável meuNome terá valores 
@@ -20,6 +20,7 @@ var usuariosOnline = {};
 io.on('connection', function(socket){
 	var meuNome;
 	enviarUsuariosOnline();
+
 	
 
 	// Toda vez que o socket receber uma mensagem, a função é chamada
@@ -32,17 +33,25 @@ io.on('connection', function(socket){
 		{	
 			if(contemUsuario(dataObj['nome']) == false)
 			{
-				meuNome = dataObj['nome'];
-				adicionarUsuario(meuNome, socket);	
-				var msgr = {tipo:"novo", user:meuNome};
+				if(nomeEValido(dataObj['nome']))
+				{
+					meuNome = dataObj['nome'];
+					adicionarUsuario(meuNome, socket);	
+					var msgr = {tipo:"novo", user:meuNome};
+					enviarMensagemGlobal(msgr);
+				}
+				else
+				{
+					var msgr={tipo:"erro2", msg:"O nickname deve conter no máximo " + tamanhoMaxNome + " e no mínimo 1 caracteres."};
+					enviarMensagemErro(socket, msgr);
+				}
 			}
 			else
 			{
 				console.log("O nome de usuário " + dataObj['nome'] + " já existe.");
-				var msgr={tipo:"erro1", msg:"Usuario jã existe"};
+				var msgr={tipo:"erro1", msg:"Usuario já existe"};
+				enviarMensagemErro(socket, msgr);
 			}
-
-		    enviarMensagemGlobal(msgr);
 		}
 		else if(dataObj['tipo'] == 'all') // Mensagem no chat que é repassada para todos
 		{
@@ -51,6 +60,7 @@ io.on('connection', function(socket){
 		}
 		else if(dataObj['tipo'] == 'dm') //Mensagem privada que é repassada ao destinatário
 		{
+			//console.log("DM recebida de " + dataObj['user'] + " para " + dataObj['dest']);
 			var msgr = {tipo:"dm", msg:dataObj['msg'], from: dataObj['user'], dest: dataObj['dest']};
 			enviarMensagemPrivada(dataObj['dest'], msgr);
 		}
@@ -65,6 +75,23 @@ io.on('connection', function(socket){
 http.listen(3000, function(){
   console.log("Servidor criado na porta 3000");
 });
+
+function nomeEValido(nome)
+{
+	if(nome.length > 0 && nome.length <= tamanhoMaxNome)
+		return true;
+	else
+		return false;
+}
+
+// Envia a mensagem de erro pro socket específico, pois ele ainda não tem um nome nome definido
+function enviarMensagemErro(socket, msg)
+{
+	var json = JSON.stringify(msg);
+	//socket.emit('chat message', json);
+	socket.emit('erro', json);
+}
+
 
 function enviarMensagemPrivada(nomeDestinario, msg)
 {

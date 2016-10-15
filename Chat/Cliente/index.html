@@ -29,12 +29,13 @@
 	</div>
 
 	<div class="content"> 
-		<div>
-			<ul id="txtMain" class="tab1" style="list-style-type: none; margin: 0; padding: 0;">
+		<div class="tab1">
+			<ul id="txtindex" style="list-style-type: none; margin: 0; padding: 0;">
 					<!--<li><span class="tagNomeAzul">&ltLucas&gt</span>Oi<span class="tagNomeAzul">&lt/Lucas&gt</span></li>
 					<li><span class="tagNomeVerde">&ltCarlos&gt</span>Oi<span class="tagNomeVerde">&lt/Carlos&gt</span></li> !-->
 			</ul>
-			<textarea onkeyup="auto_grow(this)" id="msgEntrada" placeholder="Digite seu nome de usuário..."></textarea>
+			<!--<textarea onkeyup="auto_grow(this)" id="msgEntrada" placeholder="Digite seu nome de usuário..."></textarea>!-->
+			<textarea onkeyup="auto_grow(this)" id="entradaindex" class="msgEntrada" placeholder="Digite seu nome de usuário..."></textarea>
 		</div>
 	</div>
 
@@ -53,6 +54,7 @@
 	var chatInicializado = false;
 	var tipoArquivo = ".html";
 	var abaSelecionada = "index";
+	var ultimoTabId = 1; //Variavel auxiliar para criação de novas abas de chat particular
 
 	$(document).ready(function() {
 
@@ -82,8 +84,7 @@
         $(this).parent().parent().remove();
         $('.' + $(this).parent().parent().attr('name')).remove();
       });
-
-      var ultimoTabId = 1; //Variavel auxiliar para criação de novas abas de chat particular
+ 
       
       // Adicionar um chat particular com um usuário
       $('.usuariosOn').live('click', function(){
@@ -95,7 +96,8 @@
 	      	{
 	      		selecionarAba(usuarioSelecionado);
 	      	}
-	      	else{
+	      	else
+	      	{
 	      		// Não permite abrir a aba de mensagem privada pro próprio usuário. Também é obrigatório estar logado
 	      		if($(this).text() == username || jaLogou == false)
 	      			return;
@@ -108,27 +110,38 @@
 	    	alert("Limite de abas simultaneas excedido!");
       });
 	}); 
-	
-	
 
-
-	$("#msgEntrada").keyup(function(e){
-	    if((e.keyCode || e.which) == 13) { //Enter keycode
+	// Crio o evento pro primeiro textarea (index)
+	$("#entradaindex").keyup(function(e)
+	{
+	    if((e.keyCode || e.which) == 13) 
+	    { 
 	      if(jaLogou)
-	      {
-	      		// verificar qual o tipo de mensagem
-	      		// enviar a mensagem
-	      		enviarMensagem();
-	      }
+	      	enviarMensagem();
 	      else
-	      {
 	   	     logar();
-	      }
-	      
 	    }
 	});
 
-	// Servidor para cliente
+	// Recebe uma mensagem de erro do servidor
+	socket.on('erro', function(msg)
+	{
+		// Recebe json e converte
+		var dataObj = JSON.parse(msg);
+
+		if(dataObj['tipo'] == 'erro1')
+		{
+			jaLogou = false;
+			$('.msgEntrada').attr('placeholder', "Nick " + username + " em uso. Digite outro.");
+		}
+		else if(dataObj['tipo'] == 'erro2')
+		{
+			jaLogou = false;
+			$('.msgEntrada').attr('placeholder', dataObj['msg']);
+		}
+	});
+
+	// Recebe um tipo de mensagem do chat do servidor
 	socket.on('chat message', function(msg)
 	{
 		// Recebe json e converte
@@ -164,26 +177,23 @@
 		{
 			imprimirMensagemGlobal(dataObj['msg'], dataObj['from']);
 		}
-		}else if(dataObj['tipo'] == 'dm')
+		else if(dataObj['tipo'] == 'dm')
 		{
-
-		}
-		// Erro: Usuário já existe
-		else if(dataObj['tipo'] == 'erro1'){
-			jaLogou = false;
-			$('#msgEntrada').attr('placeholder', "Nick " + username + " em uso. Digite outro.");
+			imprimirMensagemPrivada(dataObj['msg'], dataObj['from']);
 		}
 		//Usuario offline
 	});
 
 	function criarAba(nome, ultimoTabId)
 	{
-		console.log("Usuario selecionado: " + nome);
 		$(".tabs li").attr("class",""); 
       	$(".tabs ul").append('<li name="tab'+ultimoTabId+'" class="active" id="tabChat"><span class = "contTab">'+nome+tipoArquivo+'<span class="fecha"/></span></li>');
-      	$(".content").append('<div><ul class="tab'+ultimoTabId+'" style="list-style-type: none; margin: 0; padding: 0;"></ul></div>')
+      	//$(".content").append('<div><ul id="txt'+nome+'" class="tab'+ultimoTabId+'" style="list-style-type: none; margin: 0; padding: 0;"></ul></div>')
+      	$(".content").append('<div class="tab'+ultimoTabId+'"><ul id="txt'+nome+'" style="list-style-type: none; margin: 0; padding: 0;"></ul><textarea onkeyup="auto_grow(this)" class="msgEntrada" id="entrada'+nome+'"></textarea></div>')
   	    $(".content").find("[class^='tab']").hide(); 
         $('.tab'+ultimoTabId).fadeIn();
+        abaSelecionada = nome;
+        aplicarFuncao(nome);
 	}
 
 	function selecionarAba(nome)
@@ -192,17 +202,31 @@
 		$(".tabs li").attr("class",""); 
 		$(".tabs ul").find("li:contains('"+nome+tipoArquivo+"')").attr("class","active");
 		$('.' + $(".tabs ul").find("li:contains("+nome+")").attr('name')).fadeIn();
-		// teste
-		return $('.' + $(".tabs ul").find("li:contains("+nome+")");
+		abaSelecionada = nome;
+	}
 
-
+	/* No javascript tudo que é criado dinamicamente não herda os eventos que já havia definido antes de eles existirem
+	   Essa função define um evento para cada aba criada */
+	function aplicarFuncao(nomeElemento)
+	{
+		$("#entrada"+nomeElemento).keyup(function(e)
+		{
+			// Pressionou ENTER
+		    if((e.keyCode || e.which) == 13) 
+		    { 
+		      if(jaLogou)
+		      	enviarMensagem();
+		      else
+		   	     logar();
+		    }
+		});
 	}
 
 
 	function enviarMensagem()
 	{
 		// Mensagem chat
-		var txt = urlify($('#msgEntrada').val());
+		var txt = urlify($('#entrada' + abaSelecionada).val());
 		var mensagem;
 		if(abaSelecionada == "index")
 		{
@@ -212,11 +236,17 @@
 		else
 		{
 			// Enviar mensagem privada
+			var tag = "tagNomeVerde";
+			// Imprimo a mensagem privada local com o nome do usuário
+			var msg = "<li><span class='"+tag+"'>&lt"+username+"&gt</span> "+txt+"<span class='"+tag+"'>&lt/"+username+"&gt</span></li>";
+			$('#txt'+abaSelecionada).append(msg);
+
+			// Crio a mensagem a ser enviada
 			mensagem = {tipo:"dm", msg:txt, user: username, dest: abaSelecionada};
 		}
 		var json = JSON.stringify(mensagem);
 		socket.emit('chat message', json);
-		$('#msgEntrada').val('');
+		$('.msgEntrada').val('');
 	}
 
 	//Regex para identificar links nas mensagens
@@ -230,7 +260,7 @@
 
 	function imprimirMensagemPrivada(msg, remetente)
 	{
-		var tag = "tagNomeAzul";
+		var tag = "tagNomeVerde";
 		var msg = "<li><span class='"+tag+"'>&lt"+remetente+"&gt</span> "+msg+"<span class='"+tag+"'>&lt/"+remetente+"&gt</span></li>";
 		var aba;
 		if($(".tabs li:contains('"+ remetente + tipoArquivo + "')").text() != "") // Se a aba com o usuário já existir
@@ -247,7 +277,7 @@
 	      	criarAba(remetente, ultimoTabId);
       	}   
 
-		$('.tab1').append(msg);
+		$('#txt' + remetente).append(msg);
 	}
 
 
@@ -257,22 +287,26 @@
 	{
 		var tag = "tagNomeAzul";
 		var msg = "<li><span class='"+tag+"'>&lt"+remetente+"&gt</span> "+msg+"<span class='"+tag+"'>&lt/"+remetente+"&gt</span></li>";
-		$('.tab1').append(msg);
+		$('#txtindex').append(msg);
 	}
 
 	function imprimirMensagemStatus(msg)
 	{
-		$('.tab1').append("<li><span class='comentario'>&lt!-- " + msg + " !--&gt</span></li>");
+		$('#txtindex').append("<li><span class='comentario'>&lt!-- " + msg + " !--&gt</span></li>");
 	}
+
 
 	function logar()
 	{
-		username = $("#msgEntrada").val().replace(/\r?\n|\r/g, "");
+		// substituir espaço por '_' e remover caracteres especiais
+		username = $(".msgEntrada").val().replace(/\r?\n|\r/g, "");
+		// Remove do nome, os caracteres especiais e substitui o espaço pelo '_'
+		username = username.replace(/[^a-z0-9\s]/gi, '').replace(/[_\s]/g, '_');
 	    mensagem = {tipo:"novo", nome:username};
 	    var json = JSON.stringify(mensagem);
 		socket.emit('chat message', json);
-	    $("#msgEntrada").val("");
-	    $("#msgEntrada").removeAttr('placeholder');
+	    $(".msgEntrada").val("");
+	    $(".msgEntrada").removeAttr('placeholder');
 	    jaLogou = true;
 	}
 
@@ -288,7 +322,8 @@
 	}
 
   	// Função para expandir a TextArea verticalmente de acordo com o necessário
-	function auto_grow(element) {
+	function auto_grow(element)
+	{
 		element.style.height = "5px";
 		element.style.height = (element.scrollHeight+20)+"px";
 	}
