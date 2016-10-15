@@ -1,9 +1,12 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+// Necessário para carregar os arquivos externos do .html (js, imagens, css)
+var express = require('express');
+app.use(express.static(__dirname + '/Cliente')); 
 
 app.get('/', function(req, res){
-	res.sendFile("index.html", {"root": __dirname});
+	res.sendFile("./Cliente/index.html", {"root": __dirname});
 });
 
 
@@ -17,9 +20,11 @@ var usuariosOnline = {};
 io.on('connection', function(socket){
 	var meuNome;
 	enviarUsuariosOnline();
+	
 
 	// Toda vez que o socket receber uma mensagem, a função é chamada
 	socket.on('chat message', function(msg){
+
 		// Mensagem do cliente é recebida e convertida para array
 		dataObj = JSON.parse(msg);
 
@@ -28,11 +33,12 @@ io.on('connection', function(socket){
 			if(contemUsuario(dataObj['nome']) == false)
 			{
 				meuNome = dataObj['nome'];
-				adicionarUsuario(meuNome, socket);
+				adicionarUsuario(meuNome, socket);	
 				var msgr = {tipo:"novo", user:meuNome};
 			}
 			else
 			{
+				console.log("O nome de usuário " + dataObj['nome'] + " já existe.");
 				var msgr={tipo:"erro1", msg:"Usuario jã existe"};
 			}
 
@@ -84,11 +90,7 @@ function contemUsuario(nomeUsuario)
 {
 	if(contemUsuariosOnline())
 	{
-		for(i = 0; i < usuariosOnline.length;i++)
-		{
-			if(usuariosOnline[i] == nomeUsuario)
-				return true;
-		}
+		return nomeUsuario in usuariosOnline;
 	}
 
 	return false;
@@ -129,7 +131,7 @@ function desconectarUsuario(nomeUsuario)
 {
 	if(nomeUsuario in usuariosOnline)
 	{
-		console.log("Usuário desconectado: " + nomeUsuario + "["+usuariosOnline[nomeUsuario]+"]");
+		console.log("Usuário desconectado: " + nomeUsuario + "["+usuariosOnline[nomeUsuario].id+"]");
 		delete usuariosOnline[nomeUsuario];
 		if(contemUsuariosOnline())
 		{

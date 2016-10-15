@@ -1,0 +1,297 @@
+<html>
+	<head>
+		<title>Sublime Chat</title>
+		<link rel="stylesheet" href="css/style.css">
+		<script src="/socket.io/socket.io.js"></script>
+	</head>
+	<!-- Simulação da barra do cabeçalho do S.O -->
+	<header>
+		<span style = "font-family: verdana; width: 100px; font-size: 13px; color: #655"> <center style = "margin-top:6px"><b> untitled </b>-<b> Sublime Text </b></center></span>
+		<img style="float:right; padding-top:2px; padding-right: 8px; margin-top: -20px" src="./images/barraCima.png"/>
+		<spam style = "float:left; margin-top:10px; font-family: arial; font-size:13px; "> &nbsp;  File &nbsp;   Edit&nbsp;    Selection &nbsp;   Find &nbsp;   View  &nbsp;  Goto &nbsp;   Tools  &nbsp;  Project  &nbsp;  Preferrences  	&nbsp; 	 Help</span>
+	</header> 
+	<body>
+	<!-- Lista de usuários online (Simulação do sistema de pastas do sublime)-->
+		<div class="listaUsuariosOn">
+			<b style="color: #828282;">FOLDERS</b>
+			<br>
+			<div style="margin-top: 5px;"><span class="seta-baixo"></span><img src="./images/pastaAberta.png"/> usuarios</div>
+			<!-- <div class="usuariosOn"><span class="seta-direita"></span><img src="./images/pasta.png"/> matheus</div> !-->
+		</div>
+	<!-- Abas do chat -->
+	<div class="tabs round">
+	<!-- Simbolo com as setas na parte superior esquerda -->
+	<div class="setas"></div>
+	<ul>
+		<li name="tab1" id="tabChat"><span class = "contTab">index.html<span style = 'position: absolute; margin-left: 20px;'>x</span></span></li> <!--Chat Principal não pode ser fechado-->
+		<!--<li name="tab3" id="tabChat"><span class = "contTab">privado1.c<span class="fecha"/></span></li> !-->
+	</ul>
+	</div>
+
+	<div class="content"> 
+		<div>
+			<ul id="txtMain" class="tab1" style="list-style-type: none; margin: 0; padding: 0;">
+					<!--<li><span class="tagNomeAzul">&ltLucas&gt</span>Oi<span class="tagNomeAzul">&lt/Lucas&gt</span></li>
+					<li><span class="tagNomeVerde">&ltCarlos&gt</span>Oi<span class="tagNomeVerde">&lt/Carlos&gt</span></li> !-->
+			</ul>
+			<textarea onkeyup="auto_grow(this)" id="msgEntrada" placeholder="Digite seu nome de usuário..."></textarea>
+		</div>
+	</div>
+
+	<!-- Barra fixa inferior -->
+	<div class = "barraFixa"> Line 100, Column 20 </div>
+	<!-- Simulação do rodapé do S.O -->
+	<footer><img src="./images/barraEsq.png"/> <img style="float:right" src="./images/barraDir.png"/></footer>
+    
+
+	<script src="./js/jquery-1.7.2.min.js"></script><script>
+	var socket = io();
+	var jaLogou = false;
+	var username;
+	var estado = 0;
+	var online = [];
+	var chatInicializado = false;
+	var tipoArquivo = ".html";
+	var abaSelecionada = "index";
+
+	$(document).ready(function() {
+
+  	// Define a aba inicial ativa
+	$(".content").find("[class^='tab']").hide();
+	$(".tabs li:first").attr("class","active");
+	$(".content .tab1").fadeIn();
+
+	// Função que alterna para a aba clicada
+	$('.tabs.round ul #tabChat').live('click', function(e){
+		e.preventDefault();
+		if ($(this).closest("li").attr("class") == "active"){
+			return;       
+		}
+		else{             
+			$(".content").find("[class^='tab']").hide(); 
+			$(".tabs li").attr("class",""); 
+			$(this).attr("class","active");
+			$('.' + $(this).attr('name')).fadeIn();
+			// Pega o o nome da aba e ignora o tipo do arquivo
+			abaSelecionada = $(this).text().substr(0, $(this).text().indexOf('.'));
+		}
+      });
+
+      // Fecha a aba ao clicar no "x"
+      $('.tabs.round ul li .fecha').live('click', function(){
+        $(this).parent().parent().remove();
+        $('.' + $(this).parent().parent().attr('name')).remove();
+      });
+
+      var ultimoTabId = 1; //Variavel auxiliar para criação de novas abas de chat particular
+      
+      // Adicionar um chat particular com um usuário
+      $('.usuariosOn').live('click', function(){
+
+      	if($("[id^='tabChat']").length < 7)
+      	{
+      		var usuarioSelecionado = $(this).text(); 
+	      	if($(".tabs li:contains('"+ $(this).text() + tipoArquivo + "')").text() != "") // Se a aba com o usuário já existir
+	      	{
+	      		selecionarAba(usuarioSelecionado);
+	      	}
+	      	else{
+	      		// Não permite abrir a aba de mensagem privada pro próprio usuário. Também é obrigatório estar logado
+	      		if($(this).text() == username || jaLogou == false)
+	      			return;
+
+		      	ultimoTabId++;
+		      	criarAba(usuarioSelecionado, ultimoTabId);
+	      	}      		
+	      }
+	      else
+	    	alert("Limite de abas simultaneas excedido!");
+      });
+	}); 
+	
+	
+
+
+	$("#msgEntrada").keyup(function(e){
+	    if((e.keyCode || e.which) == 13) { //Enter keycode
+	      if(jaLogou)
+	      {
+	      		// verificar qual o tipo de mensagem
+	      		// enviar a mensagem
+	      		enviarMensagem();
+	      }
+	      else
+	      {
+	   	     logar();
+	      }
+	      
+	    }
+	});
+
+	// Servidor para cliente
+	socket.on('chat message', function(msg)
+	{
+		// Recebe json e converte
+		var dataObj = JSON.parse(msg);
+
+		// Entrando no chat
+		if(dataObj['tipo'] == 'userStart' && chatInicializado == false)
+		{
+			for(i=0;i<dataObj['nomes'].length;i++)
+			{
+				online.push(dataObj['nomes'][i]);
+			}
+
+			chatInicializado = true;
+			atualizarUsuariosOnline();
+		}
+		// Novo usuário no chat
+		else if(dataObj['tipo'] == 'novo')
+		{
+			// Adiciona na lista
+			var novoDivUsuario = '<div class="usuariosOn"><span class="seta-direita"></span><img src="./images/pasta.png"/>' + dataObj['user'] + '</div>';
+			$(".listaUsuariosOn").append(novoDivUsuario);
+
+			if(dataObj['user'] == username)
+				imprimirMensagemStatus("Você entrou no chat");
+			else
+				imprimirMensagemStatus(dataObj['user'] + " entrou no chat.");
+			
+			online.push(dataObj['user']);
+		}
+		// Mensagem geral
+		else if(dataObj['tipo'] == 'all')
+		{
+			imprimirMensagemGlobal(dataObj['msg'], dataObj['from']);
+		}
+		}else if(dataObj['tipo'] == 'dm')
+		{
+
+		}
+		// Erro: Usuário já existe
+		else if(dataObj['tipo'] == 'erro1'){
+			jaLogou = false;
+			$('#msgEntrada').attr('placeholder', "Nick " + username + " em uso. Digite outro.");
+		}
+		//Usuario offline
+	});
+
+	function criarAba(nome, ultimoTabId)
+	{
+		console.log("Usuario selecionado: " + nome);
+		$(".tabs li").attr("class",""); 
+      	$(".tabs ul").append('<li name="tab'+ultimoTabId+'" class="active" id="tabChat"><span class = "contTab">'+nome+tipoArquivo+'<span class="fecha"/></span></li>');
+      	$(".content").append('<div><ul class="tab'+ultimoTabId+'" style="list-style-type: none; margin: 0; padding: 0;"></ul></div>')
+  	    $(".content").find("[class^='tab']").hide(); 
+        $('.tab'+ultimoTabId).fadeIn();
+	}
+
+	function selecionarAba(nome)
+	{
+		$(".content").find("[class^='tab']").hide(); 
+		$(".tabs li").attr("class",""); 
+		$(".tabs ul").find("li:contains('"+nome+tipoArquivo+"')").attr("class","active");
+		$('.' + $(".tabs ul").find("li:contains("+nome+")").attr('name')).fadeIn();
+		// teste
+		return $('.' + $(".tabs ul").find("li:contains("+nome+")");
+
+
+	}
+
+
+	function enviarMensagem()
+	{
+		// Mensagem chat
+		var txt = urlify($('#msgEntrada').val());
+		var mensagem;
+		if(abaSelecionada == "index")
+		{
+			// Enviar mensagem global
+			mensagem = {tipo:"all", msg: txt, user: username};
+		}
+		else
+		{
+			// Enviar mensagem privada
+			mensagem = {tipo:"dm", msg:txt, user: username, dest: abaSelecionada};
+		}
+		var json = JSON.stringify(mensagem);
+		socket.emit('chat message', json);
+		$('#msgEntrada').val('');
+	}
+
+	//Regex para identificar links nas mensagens
+	function urlify(text) {
+		var urlRegex = /(((https?:\/\/)|(www\.))[^\s]+)/g;
+		return text.replace(urlRegex, function(url,b,c) {
+			var url2 = (c == 'www.') ?  'http://' +url : url;
+			return '<a href="' +url2+ '" target="_blank">' + url + '</a>';
+		})
+	}
+
+	function imprimirMensagemPrivada(msg, remetente)
+	{
+		var tag = "tagNomeAzul";
+		var msg = "<li><span class='"+tag+"'>&lt"+remetente+"&gt</span> "+msg+"<span class='"+tag+"'>&lt/"+remetente+"&gt</span></li>";
+		var aba;
+		if($(".tabs li:contains('"+ remetente + tipoArquivo + "')").text() != "") // Se a aba com o usuário já existir
+      	{
+      		selecionarAba(remetente);
+      	}
+      	else
+      	{
+      		// Não permite abrir a aba de mensagem privada pro próprio usuário. Também é obrigatório estar logado
+      		if(jaLogou == false)
+      			return;
+
+	      	ultimoTabId++;
+	      	criarAba(remetente, ultimoTabId);
+      	}   
+
+		$('.tab1').append(msg);
+	}
+
+
+
+
+	function imprimirMensagemGlobal(msg, remetente)
+	{
+		var tag = "tagNomeAzul";
+		var msg = "<li><span class='"+tag+"'>&lt"+remetente+"&gt</span> "+msg+"<span class='"+tag+"'>&lt/"+remetente+"&gt</span></li>";
+		$('.tab1').append(msg);
+	}
+
+	function imprimirMensagemStatus(msg)
+	{
+		$('.tab1').append("<li><span class='comentario'>&lt!-- " + msg + " !--&gt</span></li>");
+	}
+
+	function logar()
+	{
+		username = $("#msgEntrada").val().replace(/\r?\n|\r/g, "");
+	    mensagem = {tipo:"novo", nome:username};
+	    var json = JSON.stringify(mensagem);
+		socket.emit('chat message', json);
+	    $("#msgEntrada").val("");
+	    $("#msgEntrada").removeAttr('placeholder');
+	    jaLogou = true;
+	}
+
+	// Atualiza a lista de usuarios online na tela
+	function atualizarUsuariosOnline()
+	{
+		$(".listaUsuariosOn").html(''); // Limpa antes de adicionar
+		for(i=0; i < online.length; i++)
+		{
+			var novoDivUsuario = '<div class="usuariosOn"><span class="seta-direita"></span><img src="./images/pasta.png"/>' + online[i] + '</div>';
+			$(".listaUsuariosOn").append(novoDivUsuario);
+		}
+	}
+
+  	// Função para expandir a TextArea verticalmente de acordo com o necessário
+	function auto_grow(element) {
+		element.style.height = "5px";
+		element.style.height = (element.scrollHeight+20)+"px";
+	}
+	</script>
+	</body>
+</html>
