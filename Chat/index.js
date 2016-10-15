@@ -21,8 +21,6 @@ io.on('connection', function(socket){
 	var meuNome;
 	enviarUsuariosOnline();
 
-	
-
 	// Toda vez que o socket receber uma mensagem, a função é chamada
 	socket.on('chat message', function(msg){
 
@@ -76,6 +74,7 @@ http.listen(3000, function(){
   console.log("Servidor criado na porta 3000");
 });
 
+// Verifica se o nome do usuário é válido
 function nomeEValido(nome)
 {
 	if(nome.length > 0 && nome.length <= tamanhoMaxNome)
