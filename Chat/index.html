@@ -129,9 +129,7 @@
 					}
 				//Mensagem privada
 				}else if(dataObj['tipo']=='dm'){
-					if(dataObj['dest']==username){
-						$('#messages').append('<p class="dm">' + dataObj['from'] + " diz para você: " + dataObj['msg']);
-					}
+					$('#messages').append('<p class="dm">' + dataObj['from'] + " diz para você: " + dataObj['msg']);
 				//Erro1: Usuário já existe
 				}else if(dataObj['tipo']=='erro1'){
 					$('#m').attr('placeholder', "Nick " + username + " em uso. Digite outro.");
