@@ -22,6 +22,7 @@ io.on('connection', function(socket){
 	var meuNome;
 	funcoes.enviarUsuariosOnline(usuariosOnline, io);
 
+
 	// Toda vez que o socket receber uma mensagem, a função é chamada
 	socket.on('chat message', function(msg){
 
@@ -31,14 +32,14 @@ io.on('connection', function(socket){
 		if(dataObj['tipo'] == 'novo') // Novo usuario
 		{	
 			if(funcoes.contemUsuario(dataObj['nome'], usuariosOnline) == false)
-			{
+			{	
 				if(funcoes.nomeEValido(dataObj['nome'], tamanhoMaxNome))
 				{
 					meuNome = dataObj['nome'];
 					funcoes.adicionarUsuario(meuNome, socket, usuariosOnline);	
 					var msgr = {tipo:"novo", user:meuNome};
 					funcoes.enviarMensagemGlobal(msgr, io);
-				}
+									}
 				else
 				{
 					var msgr={tipo:"erro2", msg:"O nickname deve conter no máximo " + tamanhoMaxNome + " e no mínimo 1 caracteres."};
@@ -54,20 +55,37 @@ io.on('connection', function(socket){
 		}
 		else if(dataObj['tipo'] == 'all') // Mensagem no chat que é repassada para todos
 		{
-			var msgr = {tipo:"all", msg:dataObj['msg'], from: dataObj['user']};
+			var msgr = {tipo:"all", msg:dataObj['msg'], from: dataObj['user'], cor: dataObj['cor']};
 			funcoes.enviarMensagemGlobal(msgr, io);
 		}
-		else if(dataObj['tipo'] == 'dm') //Mensagem privada que é repassada ao destinatário
+		else if(dataObj['tipo'] == 'dm') // Mensagem privada que é repassada ao destinatário
 		{
-			//console.log("DM recebida de " + dataObj['user'] + " para " + dataObj['dest']);
-			var msgr = {tipo:"dm", msg:dataObj['msg'], from: dataObj['user'], dest: dataObj['dest']};
+			var msgr = {tipo:"dm", msg:dataObj['msg'], from: dataObj['user'], dest: dataObj['dest'], cor: dataObj['cor']};
 			funcoes.enviarMensagemPrivada(dataObj['dest'], msgr, usuariosOnline);
+		}
+	});
+
+	// Informa se o usuário está digitando ou parou de digitar
+	socket.on('typing', function(msg) 
+	{  
+		dataObj = JSON.parse(msg);
+		if(dataObj['destino'] == "index") // Envia para todos que o usuário está digitando
+			io.emit('typing', msg);	
+		else
+		{
+			usuariosOnline[dataObj['destino']].emit('typing', msg);	// Envia somente para o outro usuário que está digitando
 		}
 	});
 
 	// Caso cliente desconectar, informa para todos os usuários que ele foi desconectado
 	socket.on('disconnect', function(){
 		funcoes.desconectarUsuario(meuNome, usuariosOnline, io);
+	});
+
+	socket.on("cmd", function(msg)
+	{
+		dataObj = JSON.parse(msg);
+		console.log("comando : " + dataObj['tipo'] + " ; valor: " + dataObj['valor']);
 	});
 });
 

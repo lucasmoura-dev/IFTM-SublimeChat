@@ -86,8 +86,4 @@ exports.desconectarUsuario = function(nomeUsuario, usuariosOnline, io)
 			exports.enviarMensagemGlobal(msgr, io);
 		}
 	}
-	else
-	{
-		console.log("O usuário " + nomeUsuario + " não foi encontrado na lista usuariosOnline na função desconectarUsuario.");
-	}
 };

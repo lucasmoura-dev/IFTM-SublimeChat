@@ -27,15 +27,60 @@ function aplicarFuncao(nomeElemento)
 {
 	$("#entrada"+nomeElemento).keyup(function(e)
 	{
-		// Pressionou ENTER
-	    if((e.keyCode || e.which) == 13) 
+		if((e.keyCode || e.which) == 13) 
 	    { 
 	      if(jaLogou)
-	      	enviarMensagem();
+	      {
+	        // Envia a mensagem
+	        enviarMensagem();
+	        // Informa que já parou de digitar
+	        timeoutFunction(abaSelecionada);
+	      }
 	      else
-	   	     logar();
+	         logar();
 	    }
 	});
+
+	// Evento que detecta quando o usuário está digitando (não está apertando ENTER)
+	$("#entrada"+nomeElemento).keyup(function(e){
+	  if((e.keyCode || e.which) !== 13) 
+	  {
+	    if(jaLogou == true)
+	    {
+	      if(typing === false && $("#entrada"+nomeElemento).is(":focus"))
+	      {
+	        typing = true;
+	        enviarEstaDigitando(true, abaSelecionada);
+	        // Se ele apertar só uma tecla, deve sumir também
+        	timeout = setTimeout(timeoutFunction.bind(null, abaSelecionada), 500);
+	      }
+	      else 
+	      {
+	        // Reseta o tempo que já foi iniciado
+	        clearTimeout(timeout);
+	        // Cria o timer que chamará a função quando acabar o tempo
+	        timeout = setTimeout(timeoutFunction.bind(null, abaSelecionada), 500);
+	      }
+	    }
+	  
+	  }
+	});
+}
+
+// Verifica se a string da cor representa uma cor válida no CSS
+function eUmaCorValida(corString)
+{
+	if(corString == "") return false;
+	if(corString == "inherit") return false;
+	if(corString == "transparent") return false;
+
+	var image = document.createElement("img");
+    image.style.color = "rgb(0, 0, 0)";
+    image.style.color = corString;
+    if (image.style.color !== "rgb(0, 0, 0)") { return true; }
+    image.style.color = "rgb(255, 255, 255)";
+    image.style.color = corString;
+    return image.style.color !== "rgb(255, 255, 255)";
 }
 
 // Envia uma mensagem para o servidor(privada ou global)
@@ -44,19 +89,29 @@ function enviarMensagem()
 	// Mensagem chat
 	var txt = urlify($('#entrada' + abaSelecionada).val());
 	var mensagem;
-	if(abaSelecionada == "index") // Enviar mensagem global
+
+	// Recebe um comando para alterar a cor
+	if(txt.startsWith("/cor ") == true)
 	{
-		mensagem = {tipo:"all", msg: txt, user: username};
+		txt = txt.replace("/cor ", ""); // Remove a tag do comando da mensagem
+		if(eUmaCorValida(txt) == true)
+			corDefinida = txt; // Define a cor para as próximas mensagens
+		$('#entrada' + abaSelecionada).val('');
+		return;
+	}
+	else if(abaSelecionada == "index") // Enviar mensagem global
+	{
+		mensagem = {tipo:"all", msg: txt, user: username, cor: corDefinida};
+		console.log("enviando msg na cor " + mensagem.cor);
 	}
 	else // Enviar mensagem privada
 	{
-		var tag = "tagNomeVerde";
 		// Imprimo a mensagem privada local com o nome do usuário
-		var msg = "<li><span class='"+tag+"'>&lt"+username+"&gt</span> "+txt+"<span class='"+tag+"'>&lt/"+username+"&gt</span></li>";
+		var msg = "<li><span style='color:"+corDefinida+"'>&lt"+username+"&gt</span> "+txt+"<span style='color:"+corDefinida+"'>&lt/"+username+"&gt</span></li>";
 		$('#txt'+abaSelecionada).append(msg);
 
 		// Crio a mensagem a ser enviada
-		mensagem = {tipo:"dm", msg:txt, user: username, dest: abaSelecionada};
+		mensagem = {tipo:"dm", msg:txt, user: username, dest: abaSelecionada, cor: corDefinida};
 	}
 	// Crio o json com a mensagem
 	var json = JSON.stringify(mensagem);
@@ -76,13 +131,18 @@ function urlify(text) {
 	})
 }
 
-// Imprime uma mensagem privada na aba específica. Caso a aba não foi criada, ele criará, se já existir, selecionará ela.
-function imprimirMensagemPrivada(msg, remetente)
+function jaExisteAba(nome)
 {
-	var tag = "tagNomeVerde";
-	var msg = "<li><span class='"+tag+"'>&lt"+remetente+"&gt</span> "+msg+"<span class='"+tag+"'>&lt/"+remetente+"&gt</span></li>";
+	return $(".tabs li:contains('"+ nome + tipoArquivo + "')").text() != "";
+}
+
+// Imprime uma mensagem privada na aba específica. Caso a aba não foi criada, ele criará, se já existir, selecionará ela.
+function imprimirMensagemPrivada(msg, remetente, cor)
+{
+	//var tag = "tagNomeVerde";
+	var msg = "<li><span style='color:"+cor+"'>&lt"+remetente+"&gt</span> "+msg+"<span style='color:"+cor+"'>&lt/"+remetente+"&gt</span></li>";
 	var aba;
-	if($(".tabs li:contains('"+ remetente + tipoArquivo + "')").text() != "") // Se a aba com o usuário já existir
+	if(jaExisteAba(remetente)) // Se a aba com o usuário já existir
   	{
   		selecionarAba(remetente);
   	}
@@ -100,10 +160,9 @@ function imprimirMensagemPrivada(msg, remetente)
 }
 
 // Imprime uma mensagem global no chat principal (index)
-function imprimirMensagemGlobal(msg, remetente)
+function imprimirMensagemGlobal(msg, remetente, cor)
 {
-	var tag = "tagNomeAzul";
-	var msg = "<li><span class='"+tag+"'>&lt"+remetente+"&gt</span> "+msg+"<span class='"+tag+"'>&lt/"+remetente+"&gt</span></li>";
+	var msg = "<li><span style='color:"+cor+"'>&lt"+remetente+"&gt</span> "+msg+"<span style='color:"+cor+"'>&lt/"+remetente+"&gt</span></li>";
 	$('#txtindex').append(msg);
 }
 
@@ -152,7 +211,8 @@ function logar()
 // Atualiza a lista de usuarios online na tela
 function atualizarUsuariosOnline()
 {
-	$(".listaUsuariosOn").html(''); // Limpa antes de adicionar
+	var conteudoPadrao = '<b style="color: #828282;">FOLDERS</b><br><div style="margin-top: 5px;"><span class="seta-baixo"></span><img src="./images/pastaAberta.png"/> usuarios</div>'
+	$(".listaUsuariosOn").html(conteudoPadrao); // Limpa com o conteúdo padrão antes de adicionar
 	for(i=0; i < online.length; i++)
 	{
 		var novoDivUsuario = '<div class="usuariosOn"><span class="seta-direita"></span><img src="./images/pasta.png"/>' + online[i] + '</div>';
@@ -165,4 +225,83 @@ function auto_grow(element)
 {
 	element.style.height = "5px";
 	element.style.height = (element.scrollHeight+20)+"px";
+}
+
+// Função para o sistema 'está digitando'. Ela é chamada quando o timer acaba
+function timeoutFunction(aba)
+{
+	typing = false;
+	// Envia uma mensagem informando que o usuário parou de digitar
+	enviarEstaDigitando(false, aba);
+}
+
+// Envia uma mensagem para o servidor informando que o usuário está digitando ou paraou de digitar
+function enviarEstaDigitando(estado, destino)
+{
+	// Crio a mensagem no formato Object
+	mensagem = {estaDigitando: estado, usuario: username, destino: destino};
+	// Crio o json com a mensagem
+	var json = JSON.stringify(mensagem);
+	// Envio o JSON para o servidor
+	socket.emit('typing', json);
+}
+
+// Atualiza os usuários que estão digitando uma mensagem
+function atualizarUsuariosDigitando()
+{
+	var msg = "";
+	if(usuariosDigitando.global.length == 0)
+	{
+		criarMensagemUsuariosDigitando("");
+		return;
+	}
+
+	// 1 pessoa: Lucas está digitando...
+	// 2 pessoas: Lucas e Maria estão digitando...
+	// 3+ pessoas: Lucas, Maria e Carla estão digitando...
+
+	if(usuariosDigitando.global.length == 1)
+	{
+		if(usuariosDigitando.global[0] != username) // Não exibe que o próprio usuário está digitando
+			msg = usuariosDigitando.global[0] + " está digitando...";
+	}
+	else
+	{
+		for(var i=0; i < usuariosDigitando.global.length; i++)
+		{
+			if(usuariosDigitando.global[i] != username) // Não exibe que o próprio usuário está digitando
+			{
+				if(i > 0)
+					if(i == usuariosDigitando.global.length-1) // Último
+						msg = msg + " e ";
+					else
+						msg = msg + ", ";
+				
+				msg = msg + usuariosDigitando.global[i];
+			}
+		}
+		msg = msg + " estão digitando...";
+	}
+	criarMensagemUsuariosDigitando(msg);
+}
+
+// Atualiza a barraFixa com a mensagem que informa os usuários que estão digitando. Se não tiver nenhum, digita um mensagem padrão
+function criarMensagemUsuariosDigitando(msg)
+{
+	if(msg == "")
+		msg = " Line 100, Column 20 ";
+	$("#barraFixa").html(msg);
+}
+
+// Remove do vetor o usuário que parou de digitar
+function removerUsuarioListaDigitando(nome)
+{
+	for(var i=0; i < usuariosDigitando.global.length; i++)
+	{
+		if(usuariosDigitando.global[i] == nome)
+		{
+			// Remove o usuário da lista
+			usuariosDigitando.global.splice(i, 1);
+		}
+	}
 }

@@ -21,7 +21,9 @@ header {
   transition: border 250ms ease;
   color: #c1c1bf;
 }
-
+a{
+  color: red;
+}
 .tabs ul {
   margin: 6px 0 0 0;
   padding: 0px;
@@ -214,7 +216,7 @@ header {
   border-top: 8px solid #868686;
 }
 /* Final da Pagina */
-.barraFixa {
+#barraFixa {
     list-style-type: none;
     margin: 0;
     padding-left: 30px;

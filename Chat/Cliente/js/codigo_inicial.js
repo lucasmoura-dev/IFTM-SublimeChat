@@ -7,6 +7,12 @@ var chatInicializado = false;
 var tipoArquivo = ".html";
 var abaSelecionada = "index";
 var ultimoTabId = 1; //Variavel auxiliar para criação de novas abas de chat particular
+var corDefinida = "#3da3ef";
+// variáveis typing
+var typing = false;
+var timeout = undefined;
+var usuariosDigitando = {global: []};
+
 
 $(document).ready(function() {
 
@@ -69,10 +75,39 @@ $("#entradaindex").keyup(function(e)
     if((e.keyCode || e.which) == 13) 
     { 
       if(jaLogou)
+      {
+        // Envia a mensagem
         enviarMensagem();
+        // Informa que já parou de digitar
+        timeoutFunction(abaSelecionada);
+      }
       else
          logar();
     }
-    else
-      console.log(username + " está digitando.");
+});
+
+// Evento que detecta quando o usuário está digitando (não está apertando ENTER)
+$("#entradaindex").keyup(function(e){
+  if((e.keyCode || e.which) !== 13) 
+  {
+    if(jaLogou == true)
+    {
+      if(typing === false && $("#entradaindex").is(":focus"))
+      {
+        typing = true;
+        enviarEstaDigitando(true, abaSelecionada);
+        // Se ele apertar só uma tecla, deve sumir também
+        timeout = setTimeout(timeoutFunction.bind(null, abaSelecionada), 500);
+      }
+      else 
+      {
+        // Reseta o tempo que já foi iniciado
+        clearTimeout(timeout);
+        // Cria o timer que chamará a função quando acabar o tempo e a aba que estava selecioanda naquele momento
+        // o .bind é necessário para ppoder passar uma função com argumentos na funçaõ setTimeout
+        timeout = setTimeout(timeoutFunction.bind(null, abaSelecionada), 500);
+      }
+    }
+  
+  }
 });
