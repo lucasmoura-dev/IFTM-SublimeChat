@@ -121,12 +121,13 @@ a{
   float: left;
   width: 150px; 
   position: fixed;
-  height: 93%;
+  height: 85%;
   top: 51;
   padding-top: 5px;
   padding-left: 7px;
   font-size: 95%; 
   cursor: default;
+  overflow: auto;
 }
 
 .usuariosOn{
