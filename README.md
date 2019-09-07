@@ -10,10 +10,6 @@ Essas instruções ensinam como criar uma cópia do projeto para a sua máquina,
 
 NodeJS instalado.
 
-```
-Give examples
-```
-
 ### Installing
 
 Faça o clone do repositório no seu computador
